@@ -1,5 +1,7 @@
+use std::net::SocketAddr;
 use std::time::Duration;
-use std::{net::SocketAddr};
+
+use crate::NetReceiver;
 
 use super::handler::Handler;
 use super::kcp::KcpConn;
@@ -7,6 +9,7 @@ use super::tcp::TcpConn;
 use super::ws::WsConn;
 use super::{NetError, NetResult, NetSender, Settings};
 use tokio::net::{lookup_host, ToSocketAddrs};
+use tokio::task::JoinHandle;
 use webparse::Url;
 
 #[derive(Debug)]
@@ -110,20 +113,52 @@ impl NetConn {
         Ok(())
     }
 
-    pub async fn run_handler<F, H>(mut self, factory: F) -> NetResult<()>
+    async fn inner_run_with_handler<H>(
+        &mut self,
+        handler: H,
+        receiver: NetReceiver,
+    ) -> NetResult<()>
+    where
+        H: Handler + 'static + Sync + Send,
+    {
+        match self {
+            NetConn::Tcp(tcp) => tcp.inner_run_with_handler(handler, receiver).await?,
+            NetConn::Ws(ws) => ws.inner_run_with_handler(handler, receiver).await?,
+            NetConn::Kcp(kcp) => kcp.inner_run_with_handler(handler, receiver).await?,
+        }
+        Ok(())
+    }
+
+    pub async fn run_handler<F, H>(mut self, factory: F) -> NetResult<JoinHandle<()>>
     where
         F: FnOnce(NetSender) -> H + Send + 'static,
         H: Handler + 'static + Sync + Send,
     {
-        tokio::spawn(async move {
+        let handler = tokio::spawn(async move {
             if let Err(e) = self.inner_run_handler(factory).await {
                 println!("occur error = {e:?}");
             }
         });
-        Ok(())
+        Ok(handler)
     }
 
-    pub fn remote_addr(&self) -> &Option<SocketAddr> {
+    pub async fn run_with_handler<H>(
+        mut self,
+        handler: H,
+        receiver: NetReceiver,
+    ) -> NetResult<JoinHandle<()>>
+    where
+        H: Handler + 'static + Sync + Send,
+    {
+        let handler = tokio::spawn(async move {
+            if let Err(e) = self.inner_run_with_handler(handler, receiver).await {
+                println!("occur error = {e:?}");
+            }
+        });
+        Ok(handler)
+    }
+
+    pub fn remote_addr(&self) -> Option<SocketAddr> {
         match self {
             NetConn::Tcp(tcp) => tcp.remote_addr(),
             NetConn::Ws(ws) => ws.remote_addr(),
@@ -167,7 +202,6 @@ impl From<(WsConn, Settings)> for NetConn {
         conn
     }
 }
-
 
 impl From<KcpConn> for NetConn {
     fn from(value: KcpConn) -> Self {

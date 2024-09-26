@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 
 use crate::{
     Message, NetError, NetResult, {CloseCode, MaybeTlsStream, Settings},
@@ -129,7 +129,6 @@ impl WsClient {
                     header.insert("Sec-WebSocket-Version", "13");
                     header.insert("Sec-WebSocket-Protocol", "chat, superchat");
                     let data = req.http1_data()?;
-                    println!("all request = {:?}", String::from_utf8_lossy(&data));
                     self.write.put(&data[..]);
 
                     self.state = WsState::WaitRet;
@@ -151,7 +150,6 @@ impl WsClient {
                             }
                         }
                         self.read.mark();
-                        println!("all ret = {:?}", String::from_utf8_lossy(self.read.chunk()));
                         let s = match response.parse_buffer(&mut self.read.chunk()) {
                             Ok(s) => s,
                             Err(WebError::Http(HttpError::Partial)) => {
@@ -215,6 +213,10 @@ impl WsClient {
                 WsState::Closed(_) => return Ok(WsMsgReceiver::Msg(Message::Shutdown)),
             }
         }
+    }
+
+    pub fn remote_addr(&self) -> Option<SocketAddr> {
+        None
     }
 
     fn closing_to_closed(&mut self) {

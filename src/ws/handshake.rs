@@ -10,48 +10,19 @@
 // -----
 // Created Date: 2024/01/04 11:12:31
 
-use std::net::SocketAddr;
-
 use base64::{engine::general_purpose::STANDARD, Engine};
 use sha1::{Digest, Sha1};
-use tokio::sync::mpsc::Sender;
-use webparse::{ws::OwnedMessage, Request, Response};
+use webparse::{Request, Response};
 
-use crate::{NetResult};
+use crate::NetResult;
 
 use super::WsError;
 
 static MAGIC_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-pub struct WsHandshake {
-    pub sender: Sender<OwnedMessage>,
-    /// The HTTP request sent to begin the handshake.
-    pub request: Option<Request<Vec<u8>>>,
-    /// The HTTP response from the server confirming the handshake.
-    pub response: Response<Vec<u8>>,
-    /// The socket address of the other endpoint. This address may
-    /// be an intermediary such as a proxy server.
-    pub peer_addr: Option<SocketAddr>,
-    /// The socket address of this endpoint.
-    pub local_addr: Option<SocketAddr>,
-}
+pub struct WsHandshake;
 
 impl WsHandshake {
-    pub fn new(
-        sender: Sender<OwnedMessage>,
-        request: Option<Request<Vec<u8>>>,
-        response: Response<Vec<u8>>,
-        peer_addr: Option<SocketAddr>,
-    ) -> Self {
-        Self {
-            sender,
-            request,
-            response,
-            peer_addr,
-            local_addr: None,
-        }
-    }
-
     pub fn build_accept(key: &str) -> NetResult<String> {
         match STANDARD.decode(key) {
             Ok(vec) => {

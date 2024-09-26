@@ -3,13 +3,11 @@ use algorithm::buf::{BinaryMut, Bt};
 use super::{read_u24, Message, NetError, NetResult, OpCode, Settings};
 
 pub fn decode_message(data: &mut BinaryMut, settings: &Settings) -> NetResult<Option<Message>> {
-    println!("decode message ==========");
     if data.len() < 4 {
         return Ok(None);
     }
     data.mark();
     let length = read_u24(data) as usize;
-    println!("length = {:?}", length);
     if length < 4 {
         return Err(NetError::TooShort);
     }

@@ -16,10 +16,11 @@ pub use handshake::WsHandshake;
 pub use server::WsServer;
 pub use state::WsState;
 
-use crate::NetConn;
+use crate::{NetConn, NetReceiver};
 
 use super::{
-    online_count::OnlineCount, stream::MaybeAcceptStream, CloseCode, Handler, Message, NetError, NetResult, NetSender, Settings, TcpAcceptServer, WrapListener
+    online_count::OnlineCount, stream::MaybeAcceptStream, CloseCode, Handler, Message, NetError,
+    NetResult, NetSender, Settings, TcpAcceptServer, WrapListener,
 };
 
 pub(crate) enum WsMsgReceiver {
@@ -35,7 +36,6 @@ pub(crate) enum Ws {
     Server(WsServer),
     AcceptServer(TcpAcceptServer),
     Listener(WrapListener),
-    Unconnect(Url),
     Uninit,
 }
 
@@ -95,8 +95,12 @@ impl WsConn {
         })
     }
 
-    pub fn remote_addr(&self) -> &Option<SocketAddr> {
-        &None
+    pub fn remote_addr(&self) -> Option<SocketAddr> {
+        match &self.ws {
+            Ws::Client(ws_client) => ws_client.remote_addr(),
+            Ws::Server(ws_server) => ws_server.remote_addr(),
+            _ => None,
+        }
     }
 
     async fn process(&mut self) -> NetResult<WsMsgReceiver> {
@@ -156,14 +160,6 @@ impl WsConn {
         Ok(())
     }
 
-    fn is_inbuffer_full(&self) -> bool {
-        match &self.ws {
-            Ws::Client(ws_client) => ws_client.is_inbuffer_full(&self.settings),
-            Ws::Server(ws_server) => ws_server.is_inbuffer_full(&self.settings),
-            _ => true,
-        }
-    }
-
     fn is_outbuffer_full(&self) -> bool {
         match &self.ws {
             Ws::Client(ws_client) => ws_client.is_outbuffer_full(&self.settings),
@@ -172,19 +168,19 @@ impl WsConn {
         }
     }
 
-    pub(crate) async fn inner_run_handler<F, H>(&mut self, factory: F) -> NetResult<()>
+    pub(crate) async fn inner_run_with_handler<H>(
+        &mut self,
+        mut handler: H,
+        mut receiver: NetReceiver,
+    ) -> NetResult<()>
     where
-        F: FnOnce(NetSender) -> H + Send + 'static,
         H: Handler + 'static + Sync + Send,
     {
         self.ws.try_accept().await?;
-        let (sender, mut receiver) = NetSender::new(self.settings.queue_size, self.id);
-        let _avoid = sender.clone();
-        let mut handler = factory(sender);
         let mut call_ready = false;
         loop {
             if !call_ready && self.is_ready() {
-                handler.on_ready().await?;
+                handler.on_open().await?;
                 call_ready = true;
             }
             tokio::select! {
@@ -253,8 +249,19 @@ impl WsConn {
                     self.send_message(c.msg)?;
                 }
             };
-
         }
+    }
+
+    pub(crate) async fn inner_run_handler<F, H>(&mut self, factory: F) -> NetResult<()>
+    where
+        F: FnOnce(NetSender) -> H + Send + 'static,
+        H: Handler + 'static + Sync + Send,
+    {
+        let (sender, receiver) = NetSender::new(self.settings.queue_size, self.id);
+        let _avoid = sender.clone();
+        let handler = factory(sender);
+        self.ws.try_accept().await?;
+        self.inner_run_with_handler(handler, receiver).await
     }
 
     pub fn is_ready(&self) -> bool {

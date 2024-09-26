@@ -11,7 +11,7 @@ mod state;
 use listener::WrapKcpListener;
 pub use state::KcpState;
 
-use crate::NetConn;
+use crate::{NetConn, NetReceiver};
 
 use super::{decode_message, encode_message, CloseCode, NetError, Settings};
 
@@ -195,8 +195,8 @@ impl KcpConn {
         }
     }
 
-    pub fn remote_addr(&self) -> &Option<SocketAddr> {
-        &self.addr
+    pub fn remote_addr(&self) -> Option<SocketAddr> {
+        self.addr
     }
 
     pub(crate) fn close(&mut self, code: CloseCode, reason: String) -> NetResult<()> {
@@ -205,15 +205,15 @@ impl KcpConn {
         Ok(())
     }
 
-    pub(crate) async fn inner_run_handler<F, H>(&mut self, factory: F) -> NetResult<()>
+    pub(crate) async fn inner_run_with_handler<H>(
+        &mut self,
+        mut handler: H,
+        mut receiver: NetReceiver,
+    ) -> NetResult<()>
     where
-        F: FnOnce(NetSender) -> H + Send + 'static,
         H: Handler + 'static + Sync + Send,
     {
-        let (sender, mut receiver) = NetSender::new(self.settings.queue_size, self.id);
-        let _avoid = sender.clone();
-        let mut handler = factory(sender);
-        handler.on_ready().await?;
+        handler.on_open().await?;
         loop {
             tokio::select! {
                 ret = self.process() => {
@@ -257,6 +257,17 @@ impl KcpConn {
                 }
             };
         }
+    }
+
+    pub(crate) async fn inner_run_handler<F, H>(&mut self, factory: F) -> NetResult<()>
+    where
+        F: FnOnce(NetSender) -> H + Send + 'static,
+        H: Handler + 'static + Sync + Send,
+    {
+        let (sender, receiver) = NetSender::new(self.settings.queue_size, self.id);
+        let _avoid = sender.clone();
+        let handler = factory(sender);
+        self.inner_run_with_handler(handler, receiver).await
     }
 
     pub fn get_settings(&mut self) -> &mut Settings {

@@ -1,6 +1,4 @@
-
-
-use tokio::sync::mpsc::{channel, error::TrySendError, Receiver};
+use tokio::sync::mpsc::{channel, error::TrySendError};
 
 use super::{CloseCode, Message, NetError, NetResult};
 
@@ -8,6 +6,8 @@ use super::{CloseCode, Message, NetError, NetResult};
 pub struct Command {
     pub msg: Message,
 }
+
+pub type NetReceiver = tokio::sync::mpsc::Receiver<Command>;
 
 #[derive(Clone)]
 pub struct NetSender {
@@ -19,7 +19,7 @@ pub struct NetSender {
 // unsafe impl Send for NetSender {}
 
 impl NetSender {
-    pub fn new(capacity: usize, id: usize) -> (NetSender, Receiver<Command>) {
+    pub fn new(capacity: usize, id: usize) -> (NetSender, NetReceiver) {
         let (channel, rv) = channel(capacity);
         (NetSender { channel, id }, rv)
     }
@@ -31,13 +31,21 @@ impl NetSender {
             Err(TrySendError::Closed(msg)) => return Err(NetError::SendClosed(msg)),
         };
     }
-    
+
     pub fn get_connection_id(&self) -> usize {
         self.id
     }
-    
+
     pub fn close_with_reason(&mut self, code: CloseCode, reason: String) -> NetResult<()> {
         self.send_message(Message::Close(code, reason))?;
         Ok(())
+    }
+
+    pub async fn closed(&self) {
+        self.channel.closed().await
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.channel.is_closed()
     }
 }

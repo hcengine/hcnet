@@ -5,8 +5,6 @@ use crate::{
     {stream::MaybeAcceptStream, MaybeTlsStream},
 };
 
-use tokio::io::AsyncReadExt;
-
 pub struct TcpAcceptServer {
     stream: Option<MaybeAcceptStream>,
     addr: SocketAddr,

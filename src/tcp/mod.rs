@@ -10,10 +10,11 @@ use tokio::{
 mod state;
 pub use state::TcpState;
 
-use crate::NetConn;
+use crate::{NetConn, NetReceiver};
 
 use super::{
-    decode_message, encode_message, online_count::OnlineCount, stream::MaybeAcceptStream, CloseCode, MaybeTlsStream, NetError, Settings, TcpAcceptServer, WrapListener
+    decode_message, encode_message, online_count::OnlineCount, stream::MaybeAcceptStream,
+    CloseCode, MaybeTlsStream, NetError, Settings, TcpAcceptServer, WrapListener,
 };
 
 use super::{handler::Handler, message::Message, NetResult, NetSender};
@@ -136,7 +137,10 @@ impl TcpConn {
                 let (stream, addr, id, accepter) = listener.accept().await?;
                 let now = self.count.now();
                 if now >= self.settings.max_connections {
-                    warn!("当前连接数:{now}, 超出最大连接数: {}, 故关闭连接", self.settings.max_connections);
+                    warn!(
+                        "当前连接数:{now}, 超出最大连接数: {}, 故关闭连接",
+                        self.settings.max_connections
+                    );
                     return Ok(TcpReceiver::Next);
                 }
                 Ok(TcpReceiver::Accept(TcpConn {
@@ -225,8 +229,8 @@ impl TcpConn {
         }
     }
 
-    pub fn remote_addr(&self) -> &Option<SocketAddr> {
-        &self.addr
+    pub fn remote_addr(&self) -> Option<SocketAddr> {
+        self.addr
     }
 
     pub(crate) fn close(&mut self, code: CloseCode, reason: String) -> NetResult<()> {
@@ -235,16 +239,16 @@ impl TcpConn {
         Ok(())
     }
 
-    pub(crate) async fn inner_run_handler<F, H>(&mut self, factory: F) -> NetResult<()>
+    pub(crate) async fn inner_run_with_handler<H>(
+        &mut self,
+        mut handler: H,
+        mut receiver: NetReceiver,
+    ) -> NetResult<()>
     where
-        F: FnOnce(NetSender) -> H + Send + 'static,
         H: Handler + 'static + Sync + Send,
     {
         self.tcp.try_accept().await?;
-        let (sender, mut receiver) = NetSender::new(self.settings.queue_size, self.id);
-        let _avoid = sender.clone();
-        let mut handler = factory(sender);
-        handler.on_ready().await?;
+        handler.on_open().await?;
         loop {
             tokio::select! {
                 ret = self.process() => {
@@ -288,6 +292,17 @@ impl TcpConn {
                 }
             };
         }
+    }
+
+    pub(crate) async fn inner_run_handler<F, H>(&mut self, factory: F) -> NetResult<()>
+    where
+        F: FnOnce(NetSender) -> H + Send + 'static,
+        H: Handler + 'static + Sync + Send,
+    {
+        let (sender, receiver) = NetSender::new(self.settings.queue_size, self.id);
+        let _avoid = sender.clone();
+        let handler = factory(sender);
+        self.inner_run_with_handler(handler, receiver).await
     }
 
     pub fn get_settings(&mut self) -> &mut Settings {

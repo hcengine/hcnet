@@ -26,7 +26,7 @@ pub use encode::*;
 pub use error::NetError;
 pub use handler::Handler;
 pub use message::{Message, OpCode};
-pub use sender::NetSender;
+pub use sender::{NetSender, NetReceiver};
 pub use tcp::TcpConn;
 pub use settings::{Settings, TlsSettings};
 pub use listener::WrapListener;

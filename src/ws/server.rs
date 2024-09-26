@@ -174,6 +174,10 @@ impl WsServer {
         }
     }
 
+    pub fn remote_addr(&self) -> Option<SocketAddr> {
+        Some(self.addr)
+    }
+
     fn closing_to_closed(&mut self) {
         match &self.state {
             WsState::Closing(v) => self.state = WsState::Closed(v.clone()),
