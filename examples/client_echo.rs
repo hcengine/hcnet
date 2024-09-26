@@ -68,6 +68,7 @@ async fn main() {
     loop {
         tokio::select! {
             _ = stdin.read_line(&mut content) => {
+                content = content.trim().to_string();
                 if content == "exit" {
                     sender
                         .close_with_reason(hcnet::CloseCode::Away, "exit".to_string())
