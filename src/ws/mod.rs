@@ -197,7 +197,7 @@ impl WsConn {
                                 Ws::Server(ws_server) => {
                                     ws_server.handler_response(res)?;
                                 },
-                                _ => todo!(),
+                                _ => unreachable!(),
                             }
                             if !is_right {
                                 self.close(CloseCode::Normal, "handshake failed!".to_string())?;

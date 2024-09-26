@@ -63,7 +63,12 @@ impl WsClient {
     }
 
     pub(crate) fn close(&mut self, code: CloseCode, reason: String) -> NetResult<()> {
-        self.send_message(Message::Close(code.into(), reason.clone()))?;
+        match self.state {
+            WsState::Open => self.send_message(Message::Close(code.into(), reason.clone()))?,
+            WsState::Closing(_) => return Ok(()),
+            WsState::Closed(_) => return Ok(()),
+            _ => {}
+        }
         self.state = WsState::Closing((code, reason));
         Ok(())
     }
@@ -102,6 +107,9 @@ impl WsClient {
                     if !self.write.has_remaining() {
                         self.write.clear();
                     }
+                }
+                _ = tokio::time::sleep(Duration::from_millis(settings.read_timeout as u64)) => {
+                    return Err(NetError::ReadTimeout.into());
                 }
             }
 

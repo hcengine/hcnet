@@ -58,6 +58,9 @@ async fn main() {
 
             NetConn::ws_bind("0.0.0.0:2003", settings).await.unwrap()
         }
+        "kcp" => NetConn::kcp_bind("0.0.0.0:2003", Settings::default())
+            .await
+            .unwrap(),
         _ => NetConn::tcp_bind("0.0.0.0:2003", Settings::default())
             .await
             .unwrap(),

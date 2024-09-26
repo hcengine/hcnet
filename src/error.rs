@@ -19,6 +19,8 @@ pub enum NetError {
     BadText,
     /// 超时
     Timeout,
+    /// 读数据超时
+    ReadTimeout,
     /// 超过信息大小
     OverMsgSize,
     /// 读数据超出大小

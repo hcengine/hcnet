@@ -186,6 +186,9 @@ impl TcpConn {
                                         self.write.clear();
                                     }
                                 }
+                                _ = tokio::time::sleep(Duration::from_millis(self.settings.read_timeout as u64)) => {
+                                    return Err(NetError::ReadTimeout.into());
+                                }
                             }
                         }
                     }

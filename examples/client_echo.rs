@@ -49,6 +49,7 @@ async fn main() {
         "wss" => NetConn::ws_connect("wss://test.wmproxy.net:2003")
             .await
             .unwrap(),
+        "kcp" => NetConn::kcp_connect("127.0.0.1:2003").await.unwrap(),
         _ => NetConn::tcp_connect("127.0.0.1:2003").await.unwrap(),
     };
     let (mut sender, receiver) = NetSender::new(10, 1);

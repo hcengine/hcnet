@@ -89,6 +89,11 @@ settings.tls = Some(TlsSettings {
 NetConn::ws_bind("0.0.0.0:2003", Settings::default()).await
 ```
 
+#### kcp(udp)监听
+```rust
+NetConn::kcp_bind("0.0.0.0:2003").await
+```
+
 #### 启动监听
 ```rust
 let h = conn.run_handler(|_| ServerHandler).await.unwrap();
@@ -111,6 +116,11 @@ NetConn::ws_connect("ws://example.com:2003").await
 #### wss连接
 ```rust
 NetConn::ws_connect("wss://example.com:2003").await
+```
+
+#### kcp(udp)连接
+```rust
+NetConn::kcp_connect("wss://example.com:2003").await
 ```
 
 #### 启动监听

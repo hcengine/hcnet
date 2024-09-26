@@ -24,6 +24,9 @@ pub struct Settings {
     /// 握手的最大时长
     /// 默认值: 30000ms
     pub shake_timeout: usize,
+    /// 读超时的时长
+    /// 默认值: 30000ms
+    pub read_timeout: usize,
 
     /// 跟Tls相关内容
     pub tls: Option<TlsSettings>,
@@ -51,7 +54,7 @@ impl Default for Settings {
             closing_time: 1000,
             connect_timeout: 30000,
             shake_timeout: 30000,
-
+            read_timeout: 60000,
             tls: None,
         }
     }
