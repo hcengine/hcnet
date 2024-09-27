@@ -85,7 +85,7 @@ impl TcpConn {
 
     pub async fn bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<TcpConn> {
         let listener = TcpListener::bind(addr).await?;
-        let wrap = WrapListener::new(listener, &settings.tls).await?;
+        let wrap = WrapListener::new(listener, settings.domain.clone(), &settings.tls).await?;
         Ok(TcpConn {
             tcp: Tcp::Listener(wrap),
             count: OnlineCount::new(),
@@ -94,30 +94,55 @@ impl TcpConn {
     }
 
     pub async fn connect<A: ToSocketAddrs>(addr: A) -> NetResult<TcpConn> {
-        let stream = TcpStream::connect(addr).await?;
-        Ok(TcpConn {
-            tcp: Tcp::Stream(MaybeTlsStream::from(stream)),
-            ..Default::default()
-        })
+        Self::connect_with_settings(addr, Settings::default()).await
+    }
+
+    pub async fn connect_with_settings<A: ToSocketAddrs>(
+        addr: A,
+        settings: Settings,
+    ) -> NetResult<TcpConn> {
+        match tokio::time::timeout(
+            Duration::from_millis(settings.connect_timeout as u64),
+            TcpStream::connect(addr),
+        )
+        .await
+        {
+            Ok(v) => {
+                let stream = v?;
+                if settings.domain.is_some() {
+                    let stream =
+                        MaybeTlsStream::connect_tls(stream, settings.domain.clone().unwrap())
+                            .await?;
+                    Ok(TcpConn {
+                        tcp: Tcp::Stream(stream),
+                        settings,
+                        ..Default::default()
+                    })
+                } else {
+                    Ok(TcpConn {
+                        tcp: Tcp::Stream(MaybeTlsStream::from(stream)),
+                        settings,
+                        ..Default::default()
+                    })
+                }
+            }
+            Err(_) => Err(NetError::Timeout),
+        }
     }
 
     pub async fn connect_tls<A: ToSocketAddrs>(addr: A, domain: String) -> NetResult<TcpConn> {
-        let stream = TcpStream::connect(addr).await?;
-        let stream = MaybeTlsStream::connect_tls(stream, domain).await?;
-        Ok(TcpConn {
-            tcp: Tcp::Stream(stream),
-            ..Default::default()
-        })
+        let mut settings = Settings::default();
+        settings.domain = Some(domain);
+        Self::connect_with_settings(addr, settings).await
     }
 
     pub async fn connect_with_timeout<A: ToSocketAddrs>(
         addr: A,
         timeout: Duration,
     ) -> NetResult<TcpConn> {
-        match tokio::time::timeout(timeout, Self::connect(addr)).await {
-            Ok(v) => Ok(v?),
-            Err(_) => Err(NetError::Timeout),
-        }
+        let mut settings = Settings::default();
+        settings.connect_timeout = timeout.as_micros() as usize;
+        Self::connect_with_settings(addr, settings).await
     }
 
     pub async fn connect_tls_with_timeout<A: ToSocketAddrs>(
@@ -125,10 +150,10 @@ impl TcpConn {
         domain: String,
         timeout: Duration,
     ) -> NetResult<TcpConn> {
-        match tokio::time::timeout(timeout, Self::connect_tls(addr, domain)).await {
-            Ok(v) => Ok(v?),
-            Err(_) => Err(NetError::Timeout),
-        }
+        let mut settings = Settings::default();
+        settings.connect_timeout = timeout.as_micros() as usize;
+        settings.domain = Some(domain);
+        Self::connect_with_settings(addr, settings).await
     }
 
     async fn process(&mut self) -> NetResult<TcpReceiver> {

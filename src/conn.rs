@@ -47,7 +47,17 @@ impl NetConn {
         Url: TryFrom<U>,
         <Url as TryFrom<U>>::Error: Into<NetError>,
     {
-        Ok(NetConn::Ws(WsConn::connect(u).await?))
+        Self::ws_connect_with_settings(u, Settings::default()).await
+    }
+
+    pub async fn ws_connect_with_settings<U>(u: U, settings: Settings) -> NetResult<NetConn>
+    where
+        Url: TryFrom<U>,
+        <Url as TryFrom<U>>::Error: Into<NetError>,
+    {
+        Ok(NetConn::Ws(
+            WsConn::connect_with_settings(u, settings).await?,
+        ))
     }
 
     pub async fn tcp_bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<NetConn> {
@@ -56,6 +66,15 @@ impl NetConn {
 
     pub async fn tcp_connect<A: ToSocketAddrs>(addr: A) -> NetResult<NetConn> {
         Ok(NetConn::Tcp(TcpConn::connect(addr).await?))
+    }
+
+    pub async fn tcp_connect_with_settings<A: ToSocketAddrs>(
+        addr: A,
+        settings: Settings,
+    ) -> NetResult<NetConn> {
+        Ok(NetConn::Tcp(
+            TcpConn::connect_with_settings(addr, settings).await?,
+        ))
     }
 
     pub async fn tcp_connect_with_timeout<A: ToSocketAddrs>(
@@ -72,7 +91,16 @@ impl NetConn {
     }
 
     pub async fn kcp_connect<A: ToSocketAddrs>(addr: A) -> NetResult<NetConn> {
-        Ok(NetConn::Kcp(KcpConn::connect(addr).await?))
+        Self::kcp_connect_with_settings(addr, Settings::default()).await
+    }
+
+    pub async fn kcp_connect_with_settings<A: ToSocketAddrs>(
+        addr: A,
+        settings: Settings,
+    ) -> NetResult<NetConn> {
+        Ok(NetConn::Kcp(
+            KcpConn::connect_with_settings(addr, settings).await?,
+        ))
     }
 
     pub async fn kcp_connect_with_timeout<A: ToSocketAddrs>(

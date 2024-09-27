@@ -14,7 +14,7 @@ pub struct WrapListener {
 }
 
 impl WrapListener {
-    pub async fn new(listener: TcpListener, tls: &Option<TlsSettings>) -> NetResult<Self> {
+    pub async fn new(listener: TcpListener, domain: Option<String>, tls: &Option<TlsSettings>) -> NetResult<Self> {
         if let Some(t) = tls {
             let one_cert = Helper::load_certs(&t.cert)?;
             let one_key = Helper::load_keys(&t.key)?;
@@ -31,7 +31,7 @@ impl WrapListener {
             Ok(Self {
                 listener,
                 next_connection_id: 0,
-                domain: t.domain.clone(),
+                domain: domain,
                 accepter: Some(Arc::new(accepter)),
             })
         } else {

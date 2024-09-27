@@ -73,7 +73,7 @@ impl Default for WsConn {
 impl WsConn {
     pub async fn bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<WsConn> {
         let listener = TcpListener::bind(addr).await?;
-        let wrap = WrapListener::new(listener, &settings.tls).await?;
+        let wrap = WrapListener::new(listener, settings.domain.clone(), &settings.tls).await?;
         Ok(WsConn {
             ws: Ws::Listener(wrap),
             settings,
@@ -87,10 +87,20 @@ impl WsConn {
         Url: TryFrom<U>,
         <Url as TryFrom<U>>::Error: Into<NetError>,
     {
+        Self::connect_with_settings(u, Settings::default()).await
+    }
+
+    
+    pub async fn connect_with_settings<U>(u: U, settings: Settings) -> NetResult<WsConn>
+    where
+        Url: TryFrom<U>,
+        <Url as TryFrom<U>>::Error: Into<NetError>,
+    {
         let url = Url::try_from(u).map_err(|e| e.into())?;
         let client = WsClient::connect(url).await?;
         Ok(WsConn {
             ws: Ws::Client(client),
+            settings,
             ..Default::default()
         })
     }

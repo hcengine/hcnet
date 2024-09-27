@@ -140,3 +140,13 @@ let _ = conn.run_handler(|sender| ClientHandler { sender }).await;
 
 具体示例可参考[client_echo](./examples/client_echo.rs)
 
+
+## 启动demo
+先启动服务端
+```bash
+cargo run --example server_echo tcp
+```
+再启动客户端
+```bash
+cargo run --example client_echo tcp
+```

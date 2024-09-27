@@ -18,6 +18,7 @@ mod stream;
 mod helper;
 mod accept_server;
 mod online_count;
+mod builder;
 
 use algorithm::buf::{Bt, BtMut};
 pub use conn::{NetConn, NetType};
@@ -31,6 +32,7 @@ pub use tcp::TcpConn;
 pub use settings::{Settings, TlsSettings};
 pub use listener::WrapListener;
 pub use protocol::CloseCode;
+pub use builder::Builder;
 
 pub use stream::MaybeTlsStream;
 

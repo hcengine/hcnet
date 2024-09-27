@@ -76,37 +76,37 @@ impl KcpConn {
     }
 
     pub async fn connect<A: ToSocketAddrs>(addr: A) -> NetResult<KcpConn> {
-        let config = KcpConfig::default();
+        Self::connect_with_settings(addr, Settings::default()).await
+    }
+
+    pub async fn connect_with_settings<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<KcpConn> {
+        let mut config = KcpConfig::default();
+        config.session_expire = Duration::from_millis(settings.read_timeout as u64);
         let addrs = lookup_host(addr)
             .await?
             .into_iter()
             .collect::<Vec<SocketAddr>>();
-        let stream = KcpStream::connect(&config, addrs[0]).await?;
-        Ok(KcpConn {
-            kcp: Kcp::Stream(stream),
-            ..Default::default()
-        })
+        
+        match tokio::time::timeout(Duration::from_millis(settings.connect_timeout as u64), KcpStream::connect(&config, addrs[0])).await {
+            Ok(v) => {
+                let stream = v?;
+                Ok(KcpConn {
+                    kcp: Kcp::Stream(stream),
+                    settings,
+                    ..Default::default()
+                })
+            }
+            Err(_) => Err(NetError::Timeout),
+        }
     }
 
     pub async fn connect_with_timeout<A: ToSocketAddrs>(
         addr: A,
         timeout: Duration,
     ) -> NetResult<KcpConn> {
-        let config = KcpConfig::default();
-        let addrs = lookup_host(addr)
-            .await?
-            .into_iter()
-            .collect::<Vec<SocketAddr>>();
-        match tokio::time::timeout(timeout, KcpStream::connect(&config, addrs[0])).await {
-            Ok(v) => {
-                let stream = v?;
-                Ok(KcpConn {
-                    kcp: Kcp::Stream(stream),
-                    ..Default::default()
-                })
-            }
-            Err(_) => Err(NetError::Timeout),
-        }
+        let mut settings = Settings::default();
+        settings.connect_timeout = timeout.as_millis() as usize;
+        Self::connect_with_settings(addr, settings).await
     }
 
     async fn process(&mut self) -> NetResult<TcpReceiver> {

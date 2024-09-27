@@ -27,15 +27,14 @@ pub struct Settings {
     /// 读超时的时长
     /// 默认值: 30000ms
     pub read_timeout: usize,
-
+    /// TLS证书所用域名, 如果有该变量则表示开启
+    pub domain: Option<String>,
     /// 跟Tls相关内容
     pub tls: Option<TlsSettings>,
 }
 
 #[derive(Debug, Clone)]
 pub struct TlsSettings {
-    /// 证书所用域名
-    pub domain: Option<String>,
     /// 证书的公钥文件
     pub cert: String,
     /// 证书的私钥文件
@@ -55,6 +54,7 @@ impl Default for Settings {
             connect_timeout: 30000,
             shake_timeout: 30000,
             read_timeout: 60000,
+            domain: None,
             tls: None,
         }
     }

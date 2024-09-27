@@ -49,13 +49,14 @@ async fn main() {
             .await
             .unwrap(),
         "wss" => {
-            let mut settings = Settings::default();
-            settings.tls = Some(TlsSettings {
+            let mut settings = Settings {
                 domain: Some("test.wmproxy.net".to_string()),
+                ..Settings::default()
+            };
+            settings.tls = Some(TlsSettings {
                 cert: "key/test.wmproxy.net.pem".to_string(),
                 key: "key/test.wmproxy.net.key".to_string(),
             });
-
             NetConn::ws_bind("0.0.0.0:2003", settings).await.unwrap()
         }
         "kcp" => NetConn::kcp_bind("0.0.0.0:2003", Settings::default())
