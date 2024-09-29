@@ -83,12 +83,24 @@ impl TcpConn {
         }
     }
 
-    pub async fn bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<TcpConn> {
-        let listener = TcpListener::bind(addr).await?;
+    pub async fn bind_with_listener(listener: TcpListener, settings: Settings) -> NetResult<TcpConn> {
         let wrap = WrapListener::new(listener, settings.domain.clone(), &settings.tls).await?;
         Ok(TcpConn {
             tcp: Tcp::Listener(wrap),
             count: OnlineCount::new(),
+            ..Default::default()
+        })
+    }
+
+    pub async fn bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<TcpConn> {
+        let listener = TcpListener::bind(addr).await?;
+        Self::bind_with_listener(listener, settings).await
+    }
+
+    pub async fn connect_with_stream(stream: TcpStream, settings: Settings) -> NetResult<TcpConn> {
+        Ok(TcpConn {
+            tcp: Tcp::Stream(MaybeTlsStream::from(stream)),
+            settings,
             ..Default::default()
         })
     }

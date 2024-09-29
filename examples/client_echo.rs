@@ -2,31 +2,20 @@ use async_trait::async_trait;
 use hcnet::{Handler, Message, NetConn, NetResult, NetSender};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-struct ServerHandler;
-
 struct ClientHandler {
     sender: NetSender,
 }
 
 #[async_trait]
 impl Handler for ClientHandler {
+    async fn on_open(&mut self) -> NetResult<()> {
+        println!("client on_handle");
+        Ok(())
+    }
+    
     async fn on_message(&mut self, msg: Message) -> NetResult<()> {
         let _ = self.sender;
         println!("client read !!!!!!!!! receiver msg = {:?}", msg);
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl Handler for ServerHandler {
-    async fn on_open(&mut self) -> NetResult<()> {
-        println!("server on_handle");
-        Ok(())
-    }
-
-    async fn on_accept(&mut self, conn: NetConn) -> NetResult<()> {
-        println!("on accept remote = {:?}", conn.remote_addr());
-        let _ = conn.run_handler(|sender| ClientHandler { sender }).await;
         Ok(())
     }
 }

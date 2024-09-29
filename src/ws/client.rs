@@ -27,23 +27,21 @@ pub struct WsClient {
 }
 
 impl WsClient {
-    pub async fn connect(url: Url) -> NetResult<WsClient> {
-        let domain = unwrap_or!(url.domain.clone(), return Err(WsError::UnknowHost.into()));
-        let port = unwrap_or!(url.port, return Err(WsError::UnknowHost.into()));
+    pub async fn new(stream: TcpStream, url: Url) -> NetResult<WsClient> {
         match url.scheme {
-            webparse::Scheme::Ws => {
-                let stream = TcpStream::connect(format!("{domain}:{port}")).await?;
-                Ok(WsClient {
-                    stream: MaybeTlsStream::from(stream),
-                    url,
-                    state: WsState::Wait,
-                    read: BinaryMut::new(),
-                    write: BinaryMut::new(),
-                })
-            }
+            webparse::Scheme::Ws => Ok(WsClient {
+                stream: MaybeTlsStream::from(stream),
+                url,
+                state: WsState::Wait,
+                read: BinaryMut::new(),
+                write: BinaryMut::new(),
+            }),
             webparse::Scheme::Wss => {
-                let stream = TcpStream::connect(format!("{domain}:{port}")).await?;
-                let stream = MaybeTlsStream::connect_tls(stream, domain).await?;
+                let stream = MaybeTlsStream::connect_tls(
+                    stream,
+                    url.domain.clone().unwrap_or(String::new()),
+                )
+                .await?;
                 Ok(WsClient {
                     stream,
                     url,
@@ -51,6 +49,22 @@ impl WsClient {
                     read: BinaryMut::new(),
                     write: BinaryMut::new(),
                 })
+            }
+            _ => return Err(WsError::ProtocolError("dismatch scheme only support ws, wss").into()),
+        }
+    }
+
+    pub async fn connect(url: Url) -> NetResult<WsClient> {
+        let domain = unwrap_or!(url.domain.clone(), return Err(WsError::UnknowHost.into()));
+        let port = unwrap_or!(url.port, return Err(WsError::UnknowHost.into()));
+        match url.scheme {
+            webparse::Scheme::Ws => {
+                let stream = TcpStream::connect(format!("{domain}:{port}")).await?;
+                Self::new(stream, url).await
+            }
+            webparse::Scheme::Wss => {
+                let stream = TcpStream::connect(format!("{domain}:{port}")).await?;
+                Self::new(stream, url).await
             }
             _ => return Err(WsError::ProtocolError("dismatch scheme only support ws, wss").into()),
         }

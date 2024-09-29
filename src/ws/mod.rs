@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use log::warn;
-use tokio::net::{TcpListener, ToSocketAddrs};
+use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use webparse::{Request, Response, Url};
 
 mod client;
@@ -71,8 +71,7 @@ impl Default for WsConn {
 }
 
 impl WsConn {
-    pub async fn bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<WsConn> {
-        let listener = TcpListener::bind(addr).await?;
+    pub async fn new(listener: TcpListener, settings: Settings) -> NetResult<WsConn> {
         let wrap = WrapListener::new(listener, settings.domain.clone(), &settings.tls).await?;
         Ok(WsConn {
             ws: Ws::Listener(wrap),
@@ -80,6 +79,11 @@ impl WsConn {
             count: OnlineCount::new(),
             ..Default::default()
         })
+    }
+
+    pub async fn bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<WsConn> {
+        let listener = TcpListener::bind(addr).await?;
+        Self::new(listener, settings).await
     }
 
     pub async fn connect<U>(u: U) -> NetResult<WsConn>
@@ -90,7 +94,6 @@ impl WsConn {
         Self::connect_with_settings(u, Settings::default()).await
     }
 
-    
     pub async fn connect_with_settings<U>(u: U, settings: Settings) -> NetResult<WsConn>
     where
         Url: TryFrom<U>,
@@ -98,6 +101,20 @@ impl WsConn {
     {
         let url = Url::try_from(u).map_err(|e| e.into())?;
         let client = WsClient::connect(url).await?;
+        Ok(WsConn {
+            ws: Ws::Client(client),
+            settings,
+            ..Default::default()
+        })
+    }
+
+    pub async fn connect_with_stream<U>(stream: TcpStream, u: U, settings: Settings) -> NetResult<WsConn>
+    where
+        Url: TryFrom<U>,
+        <Url as TryFrom<U>>::Error: Into<NetError>,
+    {
+        let url = Url::try_from(u).map_err(|e| e.into())?;
+        let client = WsClient::new(stream, url).await?;
         Ok(WsConn {
             ws: Ws::Client(client),
             settings,

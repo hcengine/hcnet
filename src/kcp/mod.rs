@@ -65,18 +65,28 @@ impl KcpConn {
         }
     }
 
-    pub async fn bind<A: ToSocketAddrs>(addr: A, _settings: Settings) -> NetResult<KcpConn> {
-        let config = KcpConfig::default();
-
-        let listener = KcpListener::bind(config, addr).await?;
+    pub async fn bind_with_listener(listener: KcpListener, _settings: Settings) -> NetResult<KcpConn> {
         Ok(KcpConn {
             kcp: Kcp::Listener(WrapKcpListener::new(listener)),
             ..Default::default()
         })
     }
 
+    pub async fn bind<A: ToSocketAddrs>(addr: A, _settings: Settings) -> NetResult<KcpConn> {
+        let config = KcpConfig::default();
+        let listener = KcpListener::bind(config, addr).await?;
+        Self::bind_with_listener(listener, _settings).await
+    }
+
     pub async fn connect<A: ToSocketAddrs>(addr: A) -> NetResult<KcpConn> {
         Self::connect_with_settings(addr, Settings::default()).await
+    }
+
+    pub async fn connect_with_stream(stream: KcpStream) -> NetResult<KcpConn> {
+        Ok(KcpConn {
+            kcp: Kcp::Stream(stream),
+            ..Default::default()
+        })
     }
 
     pub async fn connect_with_settings<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<KcpConn> {

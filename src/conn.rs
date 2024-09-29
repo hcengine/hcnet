@@ -8,8 +8,9 @@ use super::kcp::KcpConn;
 use super::tcp::TcpConn;
 use super::ws::WsConn;
 use super::{NetError, NetResult, NetSender, Settings};
-use tokio::net::{lookup_host, ToSocketAddrs};
+use tokio::net::{lookup_host, TcpListener, TcpStream, ToSocketAddrs};
 use tokio::task::JoinHandle;
+use tokio_kcp::{KcpListener, KcpStream};
 use webparse::Url;
 
 #[derive(Debug)]
@@ -38,8 +39,29 @@ impl NetConn {
         }
     }
 
+    pub async fn ws_bind_with_listener(
+        listener: TcpListener,
+        settings: Settings,
+    ) -> NetResult<NetConn> {
+        Ok(NetConn::Ws(WsConn::new(listener, settings).await?))
+    }
+
     pub async fn ws_bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<NetConn> {
         Ok(NetConn::Ws(WsConn::bind(addr, settings).await?))
+    }
+
+    pub async fn ws_connect_with_stream<U>(
+        stream: TcpStream,
+        u: U,
+        settings: Settings,
+    ) -> NetResult<NetConn>
+    where
+        Url: TryFrom<U>,
+        <Url as TryFrom<U>>::Error: Into<NetError>,
+    {
+        Ok(NetConn::Ws(
+            WsConn::connect_with_stream(stream, u, settings).await?,
+        ))
     }
 
     pub async fn ws_connect<U>(u: U) -> NetResult<NetConn>
@@ -60,12 +82,27 @@ impl NetConn {
         ))
     }
 
+    pub async fn tcp_bind_with_listener(
+        listener: TcpListener,
+        settings: Settings,
+    ) -> NetResult<NetConn> {
+        Ok(NetConn::Tcp(
+            TcpConn::bind_with_listener(listener, settings).await?,
+        ))
+    }
+
     pub async fn tcp_bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<NetConn> {
         Ok(NetConn::Tcp(TcpConn::bind(addr, settings).await?))
     }
 
     pub async fn tcp_connect<A: ToSocketAddrs>(addr: A) -> NetResult<NetConn> {
         Ok(NetConn::Tcp(TcpConn::connect(addr).await?))
+    }
+
+    pub async fn tcp_connect_with_stream(stream: TcpStream) -> NetResult<NetConn> {
+        Ok(NetConn::Tcp(
+            TcpConn::connect_with_stream(stream, Settings::default()).await?,
+        ))
     }
 
     pub async fn tcp_connect_with_settings<A: ToSocketAddrs>(
@@ -86,12 +123,25 @@ impl NetConn {
         ))
     }
 
+    pub async fn kcp_bind_with_listener(
+        listener: KcpListener,
+        settings: Settings,
+    ) -> NetResult<NetConn> {
+        Ok(NetConn::Kcp(
+            KcpConn::bind_with_listener(listener, settings).await?,
+        ))
+    }
+
     pub async fn kcp_bind<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<NetConn> {
         Ok(NetConn::Kcp(KcpConn::bind(addr, settings).await?))
     }
 
     pub async fn kcp_connect<A: ToSocketAddrs>(addr: A) -> NetResult<NetConn> {
         Self::kcp_connect_with_settings(addr, Settings::default()).await
+    }
+
+    pub async fn kcp_connect_with_stream(stream: KcpStream) -> NetResult<NetConn> {
+        Ok(NetConn::Kcp(KcpConn::connect_with_stream(stream).await?))
     }
 
     pub async fn kcp_connect_with_settings<A: ToSocketAddrs>(
