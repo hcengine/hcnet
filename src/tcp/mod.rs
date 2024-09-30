@@ -274,7 +274,7 @@ impl TcpConn {
     }
 
     pub(crate) fn close(&mut self, code: CloseCode, reason: String) -> NetResult<()> {
-        encode_message(&mut self.write, Message::Close(code, reason.clone()))?;
+        encode_message(&mut self.write, Message::Close(code, reason.clone()), self.settings.is_raw)?;
         self.state = TcpState::Closing((code, reason));
         Ok(())
     }
@@ -306,7 +306,7 @@ impl TcpConn {
                                 }
                                 Message::Ping(data) => {
                                     let ret = handler.on_ping(data).await?;
-                                    encode_message(&mut self.write, Message::Pong(ret))?;
+                                    encode_message(&mut self.write, Message::Pong(ret), self.settings.is_raw)?;
                                 },
                                 Message::Pong(data) => handler.on_pong(data).await?,
                                 Message::Shutdown => return Ok(()),
@@ -328,7 +328,7 @@ impl TcpConn {
                         },
                         _ => {}
                     }
-                    encode_message(&mut self.write, c.msg)?;
+                    encode_message(&mut self.write, c.msg, self.settings.is_raw)?;
                 }
             };
         }

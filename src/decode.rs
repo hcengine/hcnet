@@ -3,6 +3,15 @@ use algorithm::buf::{BinaryMut, Bt};
 use super::{read_u24, Message, NetError, NetResult, OpCode, Settings};
 
 pub fn decode_message(data: &mut BinaryMut, settings: &Settings) -> NetResult<Option<Message>> {
+    if settings.is_raw {
+        if data.len() == 0 {
+            return Ok(None)
+        }
+        let val = data.chunk().to_vec();
+        data.advance_all();
+        return Ok(Some(Message::Binary(val)))
+    }
+    
     if data.len() < 4 {
         return Ok(None);
     }

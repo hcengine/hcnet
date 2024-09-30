@@ -27,6 +27,9 @@ pub struct Settings {
     /// 读超时的时长
     /// 默认值: 30000ms
     pub read_timeout: usize,
+    /// 是否为raw传输，即tcp默认不分包
+    /// 默认值: false
+    pub is_raw: bool,
     /// TLS证书所用域名, 如果有该变量则表示开启
     pub domain: Option<String>,
     /// 跟Tls相关内容
@@ -54,6 +57,7 @@ impl Default for Settings {
             connect_timeout: 30000,
             shake_timeout: 30000,
             read_timeout: 60000,
+            is_raw: false,
             domain: None,
             tls: None,
         }
