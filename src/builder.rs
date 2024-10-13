@@ -59,6 +59,11 @@ impl Builder {
         self
     }
 
+    pub fn is_raw(mut self, is_raw: bool) -> Self {
+        self.settings.is_raw = is_raw;
+        self
+    }
+
     pub fn domain(mut self, domain: String) -> Self {
         self.settings.domain = Some(domain);
         self
