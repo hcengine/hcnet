@@ -309,6 +309,7 @@ impl TcpConn {
                                     encode_message(&mut self.write, Message::Pong(ret), self.settings.is_raw)?;
                                 },
                                 Message::Pong(data) => handler.on_pong(data).await?,
+                                Message::Custom(_, _) => return Ok(()),
                                 Message::Shutdown => return Ok(()),
                             }
                         },

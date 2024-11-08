@@ -1,3 +1,5 @@
+use std::usize;
+
 use tokio::sync::mpsc::{channel, error::TrySendError};
 
 use super::{CloseCode, Message, NetError, NetResult};
@@ -19,7 +21,8 @@ pub struct NetSender {
 // unsafe impl Send for NetSender {}
 
 impl NetSender {
-    pub fn new(capacity: usize, id: usize) -> (NetSender, NetReceiver) {
+    pub fn new(mut capacity: usize, id: usize) -> (NetSender, NetReceiver) {
+        capacity = capacity.min(usize::MAX >> 3);
         let (channel, rv) = channel(capacity);
         (NetSender { channel, id }, rv)
     }

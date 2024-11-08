@@ -11,6 +11,7 @@ pub enum OpCode {
     Close = 8,
     Ping = 9,
     Pong = 10,
+    Custom = 16,
     Bad,
 }
 
@@ -32,6 +33,7 @@ impl fmt::Display for OpCode {
             Close => write!(f, "CLOSE"),
             Ping => write!(f, "PING"),
             Pong => write!(f, "PONG"),
+            Custom => write!(f, "CUSTOM"),
             Bad => write!(f, "BAD"),
         }
     }
@@ -45,6 +47,7 @@ impl Into<u8> for OpCode {
             Close => 8,
             Ping => 9,
             Pong => 10,
+            Custom => 16,
             Bad => {
                 debug_assert!(
                     false,
@@ -76,6 +79,7 @@ pub enum Message {
     Close(CloseCode, String),
     Ping(Vec<u8>),
     Pong(Vec<u8>),
+    Custom(u16, Vec<u8>),
     Shutdown,
 }
 

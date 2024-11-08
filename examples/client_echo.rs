@@ -1,3 +1,5 @@
+use std::usize;
+
 use async_trait::async_trait;
 use hcnet::{Handler, Message, NetConn, NetResult, NetSender};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -31,6 +33,7 @@ async fn main() {
     if args.len() > 1 {
         t = args[1].clone();
     }
+    let (mut sender, receiver) = NetSender::new(usize::MAX, 1);
     let conn = match &*t {
         "ws" => NetConn::ws_connect("ws://test.wmproxy.net:2003")
             .await
@@ -41,7 +44,6 @@ async fn main() {
         "kcp" => NetConn::kcp_connect("127.0.0.1:2003").await.unwrap(),
         _ => NetConn::tcp_connect("127.0.0.1:2003").await.unwrap(),
     };
-    let (mut sender, receiver) = NetSender::new(10, 1);
     let _ = conn
         .run_with_handler(
             ClientHandler {

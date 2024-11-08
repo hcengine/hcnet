@@ -52,6 +52,13 @@ pub fn decode_message(data: &mut BinaryMut, settings: &Settings) -> NetResult<Op
         },
         OpCode::Ping => return Ok(Some(Message::Ping(val))),
         OpCode::Pong => return Ok(Some(Message::Pong(val))),
+        OpCode::Custom => {
+            if val.len() < 3 {
+                return Err(NetError::TooShort);
+            }
+            let code = (val[0] as u16) << 4 + val[1] as u16;
+            return Ok(Some(Message::Custom(code, val[2..].to_vec())));
+        },
         OpCode::Bad => return Err(NetError::BadCode),
     }
 }
