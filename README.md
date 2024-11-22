@@ -86,7 +86,7 @@ settings.tls = Some(TlsSettings {
     cert: "key/example.com.pem".to_string(),
     key: "key/example.com.key".to_string(),
 });
-NetConn::ws_bind("0.0.0.0:2003", Settings::default()).await
+NetConn::ws_bind("0.0.0.0:2003", settings).await
 ```
 
 #### kcp(udp)监听

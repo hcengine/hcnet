@@ -254,7 +254,6 @@ impl WsConn {
                                     self.send_message(Message::Pong(ret))?;
                                 },
                                 Message::Pong(data) => handler.on_pong(data).await?,
-                                Message::Custom(_, _) => return Ok(()),
                                 Message::Shutdown => return Ok(()),
                             }
                         },

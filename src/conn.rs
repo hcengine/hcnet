@@ -21,9 +21,13 @@ pub enum NetType {
     UnixSocket,
 }
 
+/// 对外的网络对象, 仅提供相同的api来进行操作支持
 pub enum NetConn {
+    /// tcp的封装
     Tcp(TcpConn),
+    /// websocket的封装
     Ws(WsConn),
+    /// kcp的封装
     Kcp(KcpConn),
 }
 

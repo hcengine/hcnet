@@ -11,7 +11,6 @@ pub enum OpCode {
     Close = 8,
     Ping = 9,
     Pong = 10,
-    Custom = 16,
     Bad,
 }
 
@@ -33,7 +32,6 @@ impl fmt::Display for OpCode {
             Close => write!(f, "CLOSE"),
             Ping => write!(f, "PING"),
             Pong => write!(f, "PONG"),
-            Custom => write!(f, "CUSTOM"),
             Bad => write!(f, "BAD"),
         }
     }
@@ -47,7 +45,6 @@ impl Into<u8> for OpCode {
             Close => 8,
             Ping => 9,
             Pong => 10,
-            Custom => 16,
             Bad => {
                 debug_assert!(
                     false,
@@ -72,14 +69,20 @@ impl From<u8> for OpCode {
     }
 }
 
-#[derive(Debug)]
+/// 统一封装消息包与websocket统一
+#[derive(Debug, Clone)]
 pub enum Message {
+    /// 文本类型字符串, utf-8格式
     Text(String),
+    /// 二进制数据字节流
     Binary(Vec<u8>),
+    /// 关闭连接
     Close(CloseCode, String),
+    /// ping消息, 远端收到则无条件返回pong消息
     Ping(Vec<u8>),
+    /// pong消息, 响应ping, 以确定目标存活
     Pong(Vec<u8>),
-    Custom(u16, Vec<u8>),
+    /// 关闭, 则表示进行了不写模式
     Shutdown,
 }
 
