@@ -16,12 +16,17 @@ use webparse::{
 
 use super::{WsError, WsMsgReceiver, WsState};
 
+/// websocket的服务端
 pub struct WsServer {
+    /// 当前可能是tcp也可能是tcps的连接
     stream: MaybeTlsStream,
+    /// 远程连接的socket地址
     addr: SocketAddr,
+    /// ws的连接状态
     state: WsState,
-
+    /// 读缓存
     read: BinaryMut,
+    /// 写缓存
     write: BinaryMut,
 }
 
@@ -36,6 +41,7 @@ impl WsServer {
         }
     }
 
+    /// 构建返回结果, 如果非101的状态码后续将直接关闭状态
     pub(crate) fn handler_response(&mut self, mut res: Response<Vec<u8>>) -> NetResult<()> {
         match &self.state {
             WsState::WaitRet => {
@@ -72,6 +78,7 @@ impl WsServer {
         loop {
             let mut buf = ReadBuf::uninit(self.read.chunk_mut());
             tokio::select! {
+                // 读取数据, 在非仅写入的情况下
                 val = reader.read_buf(&mut buf), if !only_write => {
                     val?;
                     let s = buf.filled().len();

@@ -31,6 +31,7 @@ pub(crate) enum WsMsgReceiver {
     Next,
 }
 
+/// websocket的相关枚举状态
 pub(crate) enum Ws {
     Client(WsClient),
     Server(WsServer),
@@ -52,6 +53,7 @@ impl Ws {
     }
 }
 
+/// websocket的中控端
 pub struct WsConn {
     ws: Ws,
     id: usize,

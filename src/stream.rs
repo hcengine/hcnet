@@ -18,9 +18,13 @@ use tokio_rustls::{
 
 use super::NetResult;
 
+/// 当前可能是tcp也可能是tcps的连接
 pub enum MaybeTlsStream {
+    /// 普通的socket
     Stream(TcpStream),
+    /// tls客户端
     TlsStream(TlsStream<TcpStream>),
+    /// tls服务端
     TlsServer(TlsServer<TcpStream>),
 }
 

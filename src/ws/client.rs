@@ -17,12 +17,17 @@ use webparse::{
 
 use super::{WsError, WsMsgReceiver, WsState};
 
+/// websocket的客户端
 pub struct WsClient {
+    /// 当前可能是tcp也可能是tcps的连接
     stream: MaybeTlsStream,
+    /// 连接的Url
     url: Url,
+    /// ws的连接状态
     state: WsState,
-
+    /// 读缓存
     read: BinaryMut,
+    /// 写缓存
     write: BinaryMut,
 }
 
@@ -54,15 +59,12 @@ impl WsClient {
         }
     }
 
+    /// 通过url发起连接
     pub async fn connect(url: Url) -> NetResult<WsClient> {
         let domain = unwrap_or!(url.domain.clone(), return Err(WsError::UnknowHost.into()));
         let port = unwrap_or!(url.port, return Err(WsError::UnknowHost.into()));
         match url.scheme {
-            webparse::Scheme::Ws => {
-                let stream = TcpStream::connect(format!("{domain}:{port}")).await?;
-                Self::new(stream, url).await
-            }
-            webparse::Scheme::Wss => {
+            webparse::Scheme::Ws | webparse::Scheme::Wss => {
                 let stream = TcpStream::connect(format!("{domain}:{port}")).await?;
                 Self::new(stream, url).await
             }
@@ -97,10 +99,12 @@ impl WsClient {
         Ok(())
     }
 
+    /// 读取写入函数
     async fn process_io(&mut self, only_write: bool, settings: &Settings) -> NetResult<bool> {
         if self.is_inbuffer_full(settings) {
             return Err(crate::NetError::OverInbufferSize);
         }
+        // 分成可读可写部分,以方便使用tokio::select!
         let (mut reader, mut writer) = split(&mut self.stream);
         loop {
             let mut buf = ReadBuf::uninit(self.read.chunk_mut());
@@ -133,10 +137,12 @@ impl WsClient {
         }
     }
 
+    /// 主要处理函数
     pub(crate) async fn process(&mut self, settings: &Settings) -> NetResult<WsMsgReceiver> {
         let mut vec = vec![];
         loop {
             match &self.state {
+                // 需要发起http升级请求
                 WsState::Wait => {
                     let mut req = Request::builder()
                         .method("GET")
@@ -155,6 +161,7 @@ impl WsClient {
 
                     self.state = WsState::WaitRet;
                 }
+                // 需要发起http的Response请求回来
                 WsState::WaitRet => {
                     let util_time =
                         Instant::now() + Duration::from_millis(settings.shake_timeout as u64);
@@ -193,6 +200,7 @@ impl WsClient {
                         }
                     }
                 }
+                // 拥手成功,接下来开始互相通讯
                 WsState::Open => {
                     loop {
                         self.read.mark();
@@ -222,6 +230,7 @@ impl WsClient {
                         return Ok(WsMsgReceiver::Msg(Message::Shutdown));
                     }
                 }
+                // 接收关闭信息
                 WsState::Closing(_) => {
                     tokio::select! {
                         _ = self.process_io(true, settings) => {
@@ -232,6 +241,7 @@ impl WsClient {
                         }
                     }
                 }
+                // 关闭成功
                 WsState::Closed(_) => return Ok(WsMsgReceiver::Msg(Message::Shutdown)),
             }
         }

@@ -1,7 +1,7 @@
 
 # hcnet
 
-虚拟化服务端及客户端的底层, 可以轻松的切换tcp/tcps/ws/wss/udp等协议, 以方便在任意情况下切换协议.
+虚拟化服务端及客户端的底层，可以轻松的切换tcp/tcps/ws/wss/udp等协议， 以方便在任意情况下切换协议。后续例如在线数，流控等需求再来进行处理。
 
 ## 回调处理
 
@@ -93,8 +93,9 @@ NetConn::ws_bind("0.0.0.0:2003", settings).await
 ```rust
 NetConn::kcp_bind("0.0.0.0:2003").await
 ```
+基本上监听和一般的socket监听一致，复杂程度类似，即可任意切换任何协议。
 
-#### 启动监听
+### 服务端启动监听
 ```rust
 let h = conn.run_handler(|_| ServerHandler).await.unwrap();
 let _ = tokio::join!(h);
@@ -123,7 +124,7 @@ NetConn::ws_connect("wss://example.com:2003").await
 NetConn::kcp_connect("wss://example.com:2003").await
 ```
 
-#### 启动监听
+### 客户端启动监听
 ```rust
 let (mut sender, receiver) = NetSender::new(10, 1);
 let _ = conn.run_with_handler(
