@@ -11,7 +11,7 @@ mod state;
 use listener::WrapKcpListener;
 pub use state::KcpState;
 
-use crate::{NetConn, NetReceiver};
+use crate::{id_center::IdCenter, NetConn, NetReceiver};
 
 use super::{decode_message, encode_message, CloseCode, NetError, Settings};
 
@@ -27,7 +27,7 @@ enum Kcp {
 pub struct KcpConn {
     kcp: Kcp,
     settings: Settings,
-    id: usize,
+    id: u64,
     state: KcpState,
     addr: Option<SocketAddr>,
     read: BinaryMut,
@@ -66,8 +66,10 @@ impl KcpConn {
     }
 
     pub async fn bind_with_listener(listener: KcpListener, _settings: Settings) -> NetResult<KcpConn> {
+        let id = IdCenter::next_server_id();
         Ok(KcpConn {
-            kcp: Kcp::Listener(WrapKcpListener::new(listener)),
+            id,
+            kcp: Kcp::Listener(WrapKcpListener::new(id, listener)),
             ..Default::default()
         })
     }
@@ -291,7 +293,7 @@ impl KcpConn {
         self.settings = settings
     }
 
-    pub fn get_connection_id(&self) -> usize {
+    pub fn get_connection_id(&self) -> u64 {
         self.id
     }
 }

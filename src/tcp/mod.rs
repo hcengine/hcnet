@@ -10,7 +10,7 @@ use tokio::{
 mod state;
 pub use state::TcpState;
 
-use crate::{NetConn, NetReceiver};
+use crate::{id_center::IdCenter, NetConn, NetReceiver};
 
 use super::{
     decode_message, encode_message, online_count::OnlineCount, stream::MaybeAcceptStream,
@@ -43,7 +43,7 @@ impl Tcp {
 pub struct TcpConn {
     tcp: Tcp,
     settings: Settings,
-    id: usize,
+    id: u64,
     state: TcpState,
     addr: Option<SocketAddr>,
     read: BinaryMut,
@@ -83,10 +83,15 @@ impl TcpConn {
         }
     }
 
-    pub async fn bind_with_listener(listener: TcpListener, settings: Settings) -> NetResult<TcpConn> {
-        let wrap = WrapListener::new(listener, settings.domain.clone(), &settings.tls).await?;
+    pub async fn bind_with_listener(
+        listener: TcpListener,
+        settings: Settings,
+    ) -> NetResult<TcpConn> {
+        let id = IdCenter::next_server_id();
+        let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings.tls).await?;
         Ok(TcpConn {
             tcp: Tcp::Listener(wrap),
+            id,
             count: OnlineCount::new(),
             ..Default::default()
         })
@@ -274,7 +279,11 @@ impl TcpConn {
     }
 
     pub(crate) fn close(&mut self, code: CloseCode, reason: String) -> NetResult<()> {
-        encode_message(&mut self.write, Message::Close(code, reason.clone()), self.settings.is_raw)?;
+        encode_message(
+            &mut self.write,
+            Message::Close(code, reason.clone()),
+            self.settings.is_raw,
+        )?;
         self.state = TcpState::Closing((code, reason));
         Ok(())
     }
@@ -353,7 +362,7 @@ impl TcpConn {
         self.settings = settings
     }
 
-    pub fn get_connection_id(&self) -> usize {
+    pub fn get_connection_id(&self) -> u64 {
         self.id
     }
 }

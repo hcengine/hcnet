@@ -16,7 +16,7 @@ pub use handshake::WsHandshake;
 pub use server::WsServer;
 pub use state::WsState;
 
-use crate::{NetConn, NetReceiver};
+use crate::{id_center::IdCenter, NetConn, NetReceiver};
 
 use super::{
     online_count::OnlineCount, stream::MaybeAcceptStream, CloseCode, Handler, Message, NetError,
@@ -56,7 +56,7 @@ impl Ws {
 /// websocket的中控端
 pub struct WsConn {
     ws: Ws,
-    id: usize,
+    id: u64,
     settings: Settings,
     count: OnlineCount,
 }
@@ -72,11 +72,19 @@ impl Default for WsConn {
     }
 }
 
+// impl Drop for WsConn {
+//     fn drop(&mut self) {
+//         IdCenter::release_id(self.id);
+//     }
+// }
+
 impl WsConn {
     pub async fn new(listener: TcpListener, settings: Settings) -> NetResult<WsConn> {
-        let wrap = WrapListener::new(listener, settings.domain.clone(), &settings.tls).await?;
+        let id = IdCenter::next_server_id();
+        let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings.tls).await?;
         Ok(WsConn {
             ws: Ws::Listener(wrap),
+            id,
             settings,
             count: OnlineCount::new(),
             ..Default::default()
@@ -309,7 +317,7 @@ impl WsConn {
         self.settings = settings
     }
 
-    pub fn get_connection_id(&self) -> usize {
+    pub fn get_connection_id(&self) -> u64 {
         self.id
     }
 }

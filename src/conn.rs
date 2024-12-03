@@ -248,7 +248,7 @@ impl NetConn {
         }
     }
 
-    pub fn get_connection_id(&self) -> usize {
+    pub fn get_connection_id(&self) -> u64 {
         match self {
             NetConn::Tcp(tcp) => tcp.get_connection_id(),
             NetConn::Ws(ws) => ws.get_connection_id(),

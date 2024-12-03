@@ -14,14 +14,14 @@ pub type NetReceiver = tokio::sync::mpsc::Receiver<Command>;
 #[derive(Clone)]
 pub struct NetSender {
     channel: tokio::sync::mpsc::Sender<Command>,
-    id: usize,
+    id: u64,
 }
 
 // unsafe impl Sync for NetSender {}
 // unsafe impl Send for NetSender {}
 
 impl NetSender {
-    pub fn new(mut capacity: usize, id: usize) -> (NetSender, NetReceiver) {
+    pub fn new(mut capacity: usize, id: u64) -> (NetSender, NetReceiver) {
         capacity = capacity.min(usize::MAX >> 3);
         let (channel, rv) = channel(capacity);
         (NetSender { channel, id }, rv)
@@ -35,7 +35,7 @@ impl NetSender {
         };
     }
 
-    pub fn get_connection_id(&self) -> usize {
+    pub fn get_connection_id(&self) -> u64 {
         self.id
     }
 

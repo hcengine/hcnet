@@ -14,7 +14,7 @@ impl Handler for ClientHandler {
         println!("client on_handle");
         Ok(())
     }
-    
+
     async fn on_message(&mut self, msg: Message) -> NetResult<()> {
         let _ = self.sender;
         println!("client read !!!!!!!!! receiver msg = {:?}", msg);
@@ -27,6 +27,9 @@ async fn main() {
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .init();
+
+    // let x = AtomicU64::new(0);
+    // println!("val = {}", x.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
 
     let args = std::env::args().collect::<Vec<String>>();
     let mut t = "tcp".to_string();

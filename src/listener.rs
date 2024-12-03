@@ -7,14 +7,15 @@ use super::{helper::Helper, settings::TlsSettings, NetResult};
 
 pub struct WrapListener {
     pub listener: TcpListener,
-    pub next_connection_id: usize,
+    pub server_id: u64,
+    pub next_connection_id: u32,
 
     pub domain: Option<String>,
     pub accepter: Option<Arc<TlsAcceptor>>,
 }
 
 impl WrapListener {
-    pub async fn new(listener: TcpListener, domain: Option<String>, tls: &Option<TlsSettings>) -> NetResult<Self> {
+    pub async fn new(listener: TcpListener, server_id: u64, domain: Option<String>, tls: &Option<TlsSettings>) -> NetResult<Self> {
         if let Some(t) = tls {
             let one_cert = Helper::load_certs(&t.cert)?;
             let one_key = Helper::load_keys(&t.key)?;
@@ -30,6 +31,7 @@ impl WrapListener {
             let accepter = TlsAcceptor::from(Arc::new(config));
             Ok(Self {
                 listener,
+                server_id: server_id<<32,
                 next_connection_id: 0,
                 domain: domain,
                 accepter: Some(Arc::new(accepter)),
@@ -37,6 +39,7 @@ impl WrapListener {
         } else {
             Ok(Self {
                 listener,
+                server_id: server_id<<32,
                 next_connection_id: 0,
                 domain: None,
                 accepter: None,
@@ -46,9 +49,9 @@ impl WrapListener {
 
     pub async fn accept(
         &mut self,
-    ) -> NetResult<(TcpStream, SocketAddr, usize, Option<Arc<TlsAcceptor>>)> {
+    ) -> NetResult<(TcpStream, SocketAddr, u64, Option<Arc<TlsAcceptor>>)> {
         let (stream, addr) = self.listener.accept().await?;
         self.next_connection_id = self.next_connection_id.wrapping_add(1);
-        Ok((stream, addr, self.next_connection_id, self.accepter.clone()))
+        Ok((stream, addr, self.server_id + self.next_connection_id as u64, self.accepter.clone()))
     }
 }

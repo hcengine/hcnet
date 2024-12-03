@@ -19,6 +19,7 @@ mod helper;
 mod accept_server;
 mod online_count;
 mod builder;
+mod id_center;
 
 use algorithm::buf::{Bt, BtMut};
 pub use conn::{NetConn, NetType};
