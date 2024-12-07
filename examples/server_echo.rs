@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use hcnet::{Handler, Message, NetConn, NetResult, NetSender, Settings, TlsSettings};
+use hcnet::{Handler, Message, NetConn, NetResult, NetSender, Settings};
 
 struct ServerHandler;
 
@@ -49,14 +49,12 @@ async fn main() {
             .await
             .unwrap(),
         "wss" => {
-            let mut settings = Settings {
+            let settings = Settings {
                 domain: Some("test.wmproxy.net".to_string()),
+                cert: Some("key/example.com.pem".to_string()),
+                key: Some("key/example.com.key".to_string()),
                 ..Settings::default()
             };
-            settings.tls = Some(TlsSettings {
-                cert: "key/test.wmproxy.net.pem".to_string(),
-                key: "key/test.wmproxy.net.key".to_string(),
-            });
             NetConn::ws_bind("0.0.0.0:2003", settings).await.unwrap()
         }
         "kcp" => NetConn::kcp_bind("0.0.0.0:2003", Settings::default())

@@ -88,7 +88,7 @@ impl TcpConn {
         settings: Settings,
     ) -> NetResult<TcpConn> {
         let id = IdCenter::next_server_id();
-        let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings.tls).await?;
+        let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings).await?;
         Ok(TcpConn {
             tcp: Tcp::Listener(wrap),
             id,
@@ -290,7 +290,7 @@ impl TcpConn {
 
     pub(crate) async fn inner_run_with_handler<H>(
         &mut self,
-        mut handler: H,
+        handler: &mut H,
         mut receiver: NetReceiver,
     ) -> NetResult<()>
     where
@@ -339,6 +339,9 @@ impl TcpConn {
                     }
                     encode_message(&mut self.write, c.msg, self.settings.is_raw)?;
                 }
+                r = handler.on_logic() => {
+                    let _ = r?;
+                }
             };
         }
     }
@@ -350,8 +353,12 @@ impl TcpConn {
     {
         let (sender, receiver) = NetSender::new(self.settings.queue_size, self.id);
         let _avoid = sender.clone();
-        let handler = factory(sender);
-        self.inner_run_with_handler(handler, receiver).await
+        let mut handler = factory(sender);
+        if let Err(e) = self.inner_run_with_handler(&mut handler, receiver).await {
+            handler.on_close(CloseCode::Error, "NetError".to_string()).await;
+            return Err(e);
+        }
+        Ok(())
     }
 
     pub fn get_settings(&mut self) -> &mut Settings {

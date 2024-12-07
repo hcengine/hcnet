@@ -57,4 +57,10 @@ pub trait Handler {
         let _ = res;
         Ok(())
     }
+
+    async fn on_logic(&mut self) -> NetResult<()> {
+        let future = std::future::pending();
+        let () = future.await;
+        unreachable!()
+    }
 }

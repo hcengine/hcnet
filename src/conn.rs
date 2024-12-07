@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use crate::NetReceiver;
+use crate::{CloseCode, NetReceiver};
 
 use super::handler::Handler;
 use super::kcp::KcpConn;
@@ -197,7 +197,7 @@ impl NetConn {
 
     async fn inner_run_with_handler<H>(
         &mut self,
-        handler: H,
+        handler: &mut H,
         receiver: NetReceiver,
     ) -> NetResult<()>
     where
@@ -233,7 +233,11 @@ impl NetConn {
         H: Handler + 'static + Sync + Send,
     {
         let handler = tokio::spawn(async move {
-            if let Err(e) = self.inner_run_with_handler(handler, receiver).await {
+            let mut handler = handler;
+            if let Err(e) = self.inner_run_with_handler(&mut handler, receiver).await {
+                handler
+                    .on_close(CloseCode::Error, "NetError".to_string())
+                    .await;
                 println!("occur error = {e:?}");
             }
         });

@@ -81,7 +81,7 @@ impl Default for WsConn {
 impl WsConn {
     pub async fn new(listener: TcpListener, settings: Settings) -> NetResult<WsConn> {
         let id = IdCenter::next_server_id();
-        let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings.tls).await?;
+        let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings).await?;
         Ok(WsConn {
             ws: Ws::Listener(wrap),
             id,
@@ -118,7 +118,11 @@ impl WsConn {
         })
     }
 
-    pub async fn connect_with_stream<U>(stream: TcpStream, u: U, settings: Settings) -> NetResult<WsConn>
+    pub async fn connect_with_stream<U>(
+        stream: TcpStream,
+        u: U,
+        settings: Settings,
+    ) -> NetResult<WsConn>
     where
         Url: TryFrom<U>,
         <Url as TryFrom<U>>::Error: Into<NetError>,
@@ -207,7 +211,7 @@ impl WsConn {
 
     pub(crate) async fn inner_run_with_handler<H>(
         &mut self,
-        mut handler: H,
+        handler: &mut H,
         mut receiver: NetReceiver,
     ) -> NetResult<()>
     where
@@ -285,6 +289,9 @@ impl WsConn {
                     }
                     self.send_message(c.msg)?;
                 }
+                r = handler.on_logic() => {
+                    let _ = r?;
+                }
             };
         }
     }
@@ -296,9 +303,15 @@ impl WsConn {
     {
         let (sender, receiver) = NetSender::new(self.settings.queue_size, self.id);
         let _avoid = sender.clone();
-        let handler = factory(sender);
+        let mut handler = factory(sender);
         self.ws.try_accept().await?;
-        self.inner_run_with_handler(handler, receiver).await
+        if let Err(e) = self.inner_run_with_handler(&mut handler, receiver).await {
+            handler
+                .on_close(CloseCode::Error, "NetError".to_string())
+                .await;
+            return Err(e);
+        }
+        Ok(())
     }
 
     pub fn is_ready(&self) -> bool {

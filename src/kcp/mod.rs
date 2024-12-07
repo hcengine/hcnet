@@ -65,7 +65,10 @@ impl KcpConn {
         }
     }
 
-    pub async fn bind_with_listener(listener: KcpListener, _settings: Settings) -> NetResult<KcpConn> {
+    pub async fn bind_with_listener(
+        listener: KcpListener,
+        _settings: Settings,
+    ) -> NetResult<KcpConn> {
         let id = IdCenter::next_server_id();
         Ok(KcpConn {
             id,
@@ -91,15 +94,23 @@ impl KcpConn {
         })
     }
 
-    pub async fn connect_with_settings<A: ToSocketAddrs>(addr: A, settings: Settings) -> NetResult<KcpConn> {
+    pub async fn connect_with_settings<A: ToSocketAddrs>(
+        addr: A,
+        settings: Settings,
+    ) -> NetResult<KcpConn> {
         let mut config = KcpConfig::default();
         config.session_expire = Duration::from_millis(settings.read_timeout as u64);
         let addrs = lookup_host(addr)
             .await?
             .into_iter()
             .collect::<Vec<SocketAddr>>();
-        
-        match tokio::time::timeout(Duration::from_millis(settings.connect_timeout as u64), KcpStream::connect(&config, addrs[0])).await {
+
+        match tokio::time::timeout(
+            Duration::from_millis(settings.connect_timeout as u64),
+            KcpStream::connect(&config, addrs[0]),
+        )
+        .await
+        {
             Ok(v) => {
                 let stream = v?;
                 Ok(KcpConn {
@@ -215,14 +226,18 @@ impl KcpConn {
     }
 
     pub(crate) fn close(&mut self, code: CloseCode, reason: String) -> NetResult<()> {
-        encode_message(&mut self.write, Message::Close(code, reason.clone()), self.settings.is_raw)?;
+        encode_message(
+            &mut self.write,
+            Message::Close(code, reason.clone()),
+            self.settings.is_raw,
+        )?;
         self.state = KcpState::Closing((code, reason));
         Ok(())
     }
 
     pub(crate) async fn inner_run_with_handler<H>(
         &mut self,
-        mut handler: H,
+        handler: &mut H,
         mut receiver: NetReceiver,
     ) -> NetResult<()>
     where
@@ -270,6 +285,9 @@ impl KcpConn {
                     }
                     encode_message(&mut self.write, c.msg, self.settings.is_raw)?;
                 }
+                r = handler.on_logic() => {
+                    let _ = r?;
+                }
             };
         }
     }
@@ -281,8 +299,14 @@ impl KcpConn {
     {
         let (sender, receiver) = NetSender::new(self.settings.queue_size, self.id);
         let _avoid = sender.clone();
-        let handler = factory(sender);
-        self.inner_run_with_handler(handler, receiver).await
+        let mut handler = factory(sender);
+        if let Err(e) = self.inner_run_with_handler(&mut handler, receiver).await {
+            handler
+                .on_close(CloseCode::Error, "NetError".to_string())
+                .await;
+            return Err(e);
+        }
+        Ok(())
     }
 
     pub fn get_settings(&mut self) -> &mut Settings {

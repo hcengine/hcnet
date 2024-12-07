@@ -32,18 +32,12 @@ pub struct Settings {
     pub is_raw: bool,
     /// TLS证书所用域名, 如果有该变量则表示开启
     pub domain: Option<String>,
-    /// 跟Tls相关内容
-    pub tls: Option<TlsSettings>,
-}
-
-#[derive(Debug, Clone)]
-pub struct TlsSettings {
     /// 证书的公钥文件
-    pub cert: String,
+    pub cert: Option<String>,
     /// 证书的私钥文件
-    pub key: String,
-
+    pub key: Option<String>,
 }
+
 
 impl Default for Settings {
     fn default() -> Self {
@@ -59,7 +53,8 @@ impl Default for Settings {
             read_timeout: 60000,
             is_raw: false,
             domain: None,
-            tls: None,
+            cert: None,
+            key: None,
         }
     }
 }

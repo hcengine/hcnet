@@ -1,7 +1,7 @@
 use std::usize;
 
 use async_trait::async_trait;
-use hcnet::{Handler, Message, NetConn, NetResult, NetSender};
+use hcnet::{CloseCode, Handler, Message, NetConn, NetResult, NetSender};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 struct ClientHandler {
@@ -19,6 +19,14 @@ impl Handler for ClientHandler {
         let _ = self.sender;
         println!("client read !!!!!!!!! receiver msg = {:?}", msg);
         Ok(())
+    }
+
+    /// 此接口在远程服务端被关闭时进行触发
+    async fn on_close(&mut self, code: CloseCode, reason: String) {
+        println!(
+            "on_close code = {}, reason = {reason}",
+            Into::<u16>::into(code)
+        );
     }
 }
 

@@ -1,7 +1,7 @@
 use tokio::net::ToSocketAddrs;
 use webparse::Url;
 
-use crate::{NetConn, NetError, NetResult, Settings, TlsSettings};
+use crate::{NetConn, NetError, NetResult, Settings};
 
 pub struct Builder {
     settings: Settings,
@@ -70,7 +70,8 @@ impl Builder {
     }
 
     pub fn tls(mut self, cert: String, key: String) -> Self {
-        self.settings.tls = Some(TlsSettings { cert, key });
+        self.settings.cert = Some(cert);
+        self.settings.key = Some(key);
         self
     }
 

@@ -3,7 +3,9 @@ use std::{io, net::SocketAddr, sync::Arc};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::{rustls, TlsAcceptor};
 
-use super::{helper::Helper, settings::TlsSettings, NetResult};
+use crate::Settings;
+
+use super::{helper::Helper, NetResult};
 
 pub struct WrapListener {
     pub listener: TcpListener,
@@ -15,10 +17,10 @@ pub struct WrapListener {
 }
 
 impl WrapListener {
-    pub async fn new(listener: TcpListener, server_id: u64, domain: Option<String>, tls: &Option<TlsSettings>) -> NetResult<Self> {
-        if let Some(t) = tls {
-            let one_cert = Helper::load_certs(&t.cert)?;
-            let one_key = Helper::load_keys(&t.key)?;
+    pub async fn new(listener: TcpListener, server_id: u64, domain: Option<String>, settings: &Settings) -> NetResult<Self> {
+        if let Some(t) = &settings.cert {
+            let one_cert = Helper::load_certs(&t)?;
+            let one_key = Helper::load_keys(&settings.key.clone().unwrap_or(String::new()))?;
             let config = rustls::ServerConfig::builder();
             let mut config = config
                 .with_no_client_auth()

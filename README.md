@@ -80,12 +80,12 @@ NetConn::ws_bind("0.0.0.0:2003", Settings::default()).await
 #### wss监听
 监听时将证书信息配置即可轻松的支持wss协议
 ```rust
-let mut settings = Settings::default();
-settings.tls = Some(TlsSettings {
-    domain: Some("example.com".to_string()),
-    cert: "key/example.com.pem".to_string(),
-    key: "key/example.com.key".to_string(),
-});
+let mut settings = Settings {
+    domain: Some("test.wmproxy.net".to_string()),
+    cert: Some("key/example.com.pem".to_string()),
+    key: Some("key/example.com.key".to_string()),
+    ..Settings::default()
+};
 NetConn::ws_bind("0.0.0.0:2003", settings).await
 ```
 

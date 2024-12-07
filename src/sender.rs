@@ -11,7 +11,7 @@ pub struct Command {
 
 pub type NetReceiver = tokio::sync::mpsc::Receiver<Command>;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct NetSender {
     channel: tokio::sync::mpsc::Sender<Command>,
     id: u64,
