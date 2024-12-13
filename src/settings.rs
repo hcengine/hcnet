@@ -1,4 +1,8 @@
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     /// 最大监听连接数
     /// 默认值: 1024
