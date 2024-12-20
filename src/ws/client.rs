@@ -193,7 +193,7 @@ impl WsClient {
                         if !response.is_partial() {
                             self.read.advance(s);
                             if response.status() != 101 {
-                                println!("body = {:?}", String::from_utf8_lossy(response.body()));
+                                // println!("body = {:?}", String::from_utf8_lossy(response.body()));
                                 return Err(WsError::FailStatus(response.status().as_u16()).into());
                             }
                             return Ok(WsMsgReceiver::Res(response));

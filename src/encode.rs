@@ -26,7 +26,7 @@ pub fn encode_message(data: &mut BinaryMut, msg: Message, is_raw: bool) -> NetRe
         Message::Close(code, reason) => {
             if !is_raw {
                 let bytes = reason.into_bytes();
-                encode_u24(data, (bytes.len() + 5) as u32);
+                encode_u24(data, (bytes.len() + 6) as u32);
                 data.put_u8(OpCode::Close.into());
                 data.put_u16(code.into());
                 data.put_slice(&bytes);

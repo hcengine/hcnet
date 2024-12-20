@@ -40,10 +40,10 @@ pub fn decode_message(data: &mut BinaryMut, settings: &Settings) -> NetResult<Op
         },
         OpCode::Binary => return Ok(Some(Message::Binary(val))),
         OpCode::Close => {
-            if val.len() < 3 {
+            if val.len() < 2 {
                 return Err(NetError::TooShort);
             }
-            let code = (val[0] as u16) << 4 + val[1] as u16;
+            let code = (val[0] as u16).wrapping_shl(8) + val[1] as u16;
             if let Ok(v) = String::from_utf8(val[2..].to_vec()) {
                 return Ok(Some(Message::Close(code.into(), v)));
             } else {
@@ -53,6 +53,6 @@ pub fn decode_message(data: &mut BinaryMut, settings: &Settings) -> NetResult<Op
         OpCode::Ping => return Ok(Some(Message::Ping(val))),
         OpCode::Pong => return Ok(Some(Message::Pong(val))),
 
-        OpCode::Bad => return Err(NetError::BadCode),
+        OpCode::Bad | OpCode::Shutdown => return Err(NetError::BadCode),
     }
 }

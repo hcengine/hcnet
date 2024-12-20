@@ -244,6 +244,7 @@ impl TcpConn {
                                     if !self.write.has_remaining() {
                                         self.write.clear();
                                         self.state = TcpState::Closed;
+                                        time::sleep(Duration::from_millis(self.settings.closing_time as u64)).await;
                                         return Ok(TcpReceiver::Read(Message::Shutdown));
                                     }
                                 }

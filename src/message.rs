@@ -11,7 +11,8 @@ pub enum OpCode {
     Close = 8,
     Ping = 9,
     Pong = 10,
-    Bad,
+    Shutdown = 11,
+    Bad = 255,
 }
 
 impl OpCode {
@@ -32,6 +33,7 @@ impl fmt::Display for OpCode {
             Close => write!(f, "CLOSE"),
             Ping => write!(f, "PING"),
             Pong => write!(f, "PONG"),
+            Shutdown => write!(f, "SHUTDOWN"),
             Bad => write!(f, "BAD"),
         }
     }
@@ -45,6 +47,7 @@ impl Into<u8> for OpCode {
             Close => 8,
             Ping => 9,
             Pong => 10,
+            Shutdown => 10,
             Bad => {
                 debug_assert!(
                     false,
@@ -86,7 +89,30 @@ pub enum Message {
     Shutdown,
 }
 
-impl Message {}
+impl Message {
+
+    pub fn op_code(&self) -> OpCode {
+        match self {
+            Message::Text(_) => OpCode::Text,
+            Message::Binary(_) => OpCode::Binary,
+            Message::Close(_, _) => OpCode::Close,
+            Message::Ping(_) => OpCode::Ping,
+            Message::Pong(_) => OpCode::Pong,
+            Message::Shutdown => OpCode::Bad,
+        }
+    }
+
+    pub fn get_type(&self) -> u8 {
+        match self {
+            Message::Text(_) => OpCode::Text as u8,
+            Message::Binary(_) => OpCode::Binary as u8,
+            Message::Close(_, _) => OpCode::Close as u8,
+            Message::Ping(_) => OpCode::Ping as u8,
+            Message::Pong(_) => OpCode::Pong as u8,
+            Message::Shutdown => OpCode::Shutdown as u8,
+        }
+    }
+}
 
 impl From<OwnedMessage> for Message {
     fn from(value: OwnedMessage) -> Self {

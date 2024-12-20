@@ -35,6 +35,10 @@ impl NetSender {
         };
     }
 
+    pub fn set_connection_id(&mut self, id: u64) {
+        self.id = id;
+    }
+
     pub fn get_connection_id(&self) -> u64 {
         self.id
     }
