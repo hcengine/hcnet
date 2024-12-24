@@ -18,7 +18,8 @@ pub struct WrapListener {
 
 impl WrapListener {
     pub async fn new(listener: TcpListener, server_id: u64, domain: Option<String>, settings: &Settings) -> NetResult<Self> {
-        if let Some(t) = &settings.cert {
+        if settings.cert.is_some() && settings.key.is_some() {
+            let t = settings.cert.as_ref().unwrap();
             let one_cert = Helper::load_certs(&t)?;
             let one_key = Helper::load_keys(&settings.key.clone().unwrap_or(String::new()))?;
             let config = rustls::ServerConfig::builder();

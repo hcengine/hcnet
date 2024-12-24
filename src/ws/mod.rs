@@ -264,11 +264,12 @@ impl WsConn {
                                     return Ok(())
                                 }
                                 Message::Ping(data) => {
-                                    let ret = handler.on_ping(data).await?;
-                                    self.send_message(Message::Pong(ret))?;
+                                    if let Some(ret) = handler.on_ping(data).await? {
+                                        self.send_message(Message::Pong(ret))?;
+                                    }
                                 },
                                 Message::Pong(data) => handler.on_pong(data).await?,
-                                Message::Shutdown => return Ok(()),
+                                _ => return Ok(()),
                             }
                         },
                         WsMsgReceiver::Next => continue,

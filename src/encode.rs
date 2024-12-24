@@ -46,7 +46,7 @@ pub fn encode_message(data: &mut BinaryMut, msg: Message, is_raw: bool) -> NetRe
                 data.put_slice(&bytes);
             }
         }
-        Message::Shutdown => {
+        _ => {
             // encode_u24(data, 4);
             // data.put_u8(OpCode::Shutdown.into());
         }

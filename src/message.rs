@@ -87,6 +87,8 @@ pub enum Message {
     Pong(Vec<u8>),
     /// 关闭, 则表示进行了不写模式
     Shutdown,
+    /// 关闭, 则表示进行了不写模式
+    Unvaid,
 }
 
 impl Message {
@@ -98,7 +100,8 @@ impl Message {
             Message::Close(_, _) => OpCode::Close,
             Message::Ping(_) => OpCode::Ping,
             Message::Pong(_) => OpCode::Pong,
-            Message::Shutdown => OpCode::Bad,
+            Message::Shutdown => OpCode::Shutdown,
+            Message::Unvaid => OpCode::Bad,
         }
     }
 
@@ -110,6 +113,7 @@ impl Message {
             Message::Ping(_) => OpCode::Ping as u8,
             Message::Pong(_) => OpCode::Pong as u8,
             Message::Shutdown => OpCode::Shutdown as u8,
+            Message::Unvaid => OpCode::Bad as u8,
         }
     }
 }

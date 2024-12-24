@@ -315,11 +315,12 @@ impl TcpConn {
                                     return Ok(())
                                 }
                                 Message::Ping(data) => {
-                                    let ret = handler.on_ping(data).await?;
-                                    encode_message(&mut self.write, Message::Pong(ret), self.settings.is_raw)?;
+                                    if let Some(ret) = handler.on_ping(data).await? {
+                                        encode_message(&mut self.write, Message::Pong(ret), self.settings.is_raw)?;
+                                    }
                                 },
                                 Message::Pong(data) => handler.on_pong(data).await?,
-                                Message::Shutdown => return Ok(()),
+                                _ => return Ok(()),
                             }
                         },
                         TcpReceiver::Next => continue,

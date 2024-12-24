@@ -31,9 +31,9 @@ pub trait Handler {
     }
 
     /// ping消息收到, 将会自动返回pong消息
-    async fn on_ping(&mut self, data: Vec<u8>) -> NetResult<Vec<u8>> {
+    async fn on_ping(&mut self, data: Vec<u8>) -> NetResult<Option<Vec<u8>>> {
         trace!("on_ping");
-        Ok(data)
+        Ok(Some(data))
     }
 
     /// pong消息
