@@ -5,7 +5,7 @@ pub struct IdCenter;
 static NOW: AtomicU64 = AtomicU64::new(1);
 
 impl IdCenter {
-    pub fn next_server_id() -> u64 {
+    pub fn next_connect_id() -> u64 {
         static MAX_ID: u64 = u64::MAX >> 33;
         loop {
             let next = NOW.fetch_add(1, Ordering::Relaxed);

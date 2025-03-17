@@ -16,7 +16,8 @@ tokio = { version = "1.40.0", features = ["full"] }
 async-trait = "0.1.83"
 log = "0.4.22"
 
-webparse = "0.3.0"
+# webparse = "0.3.0"
+webparse = { path = "../webparse"}
 
 base64 = "0.22"
 sha1 = "0.10.6"
@@ -34,7 +35,7 @@ env_logger = "0.11.5"
 lazy_static = "1.5.0"
 
 serde = {version = "1.0.216", features = ["derive"]}
-algorithm = { version = "^0.1.5"}
+algorithm = { version = "^0.1.18"}
 # algorithm = { path = "../algorithm"}
 
 [dev-dependencies]

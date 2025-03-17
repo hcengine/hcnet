@@ -80,7 +80,7 @@ impl Default for WsConn {
 
 impl WsConn {
     pub async fn new(listener: TcpListener, settings: Settings) -> NetResult<WsConn> {
-        let id = IdCenter::next_server_id();
+        let id = IdCenter::next_connect_id();
         let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings).await?;
         Ok(WsConn {
             ws: Ws::Listener(wrap),
@@ -113,6 +113,7 @@ impl WsConn {
         let client = WsClient::connect(url).await?;
         Ok(WsConn {
             ws: Ws::Client(client),
+            id: IdCenter::next_connect_id(),
             settings,
             ..Default::default()
         })
@@ -131,6 +132,7 @@ impl WsConn {
         let client = WsClient::new(stream, url).await?;
         Ok(WsConn {
             ws: Ws::Client(client),
+            id: IdCenter::next_connect_id(),
             settings,
             ..Default::default()
         })
@@ -140,6 +142,7 @@ impl WsConn {
         match &self.ws {
             Ws::Client(ws_client) => ws_client.remote_addr(),
             Ws::Server(ws_server) => ws_server.remote_addr(),
+            Ws::AcceptServer(accept) => Some(accept.addr),
             _ => None,
         }
     }

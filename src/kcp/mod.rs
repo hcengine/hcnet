@@ -69,7 +69,7 @@ impl KcpConn {
         listener: KcpListener,
         _settings: Settings,
     ) -> NetResult<KcpConn> {
-        let id = IdCenter::next_server_id();
+        let id = IdCenter::next_connect_id();
         Ok(KcpConn {
             id,
             kcp: Kcp::Listener(WrapKcpListener::new(id, listener)),
@@ -90,6 +90,7 @@ impl KcpConn {
     pub async fn connect_with_stream(stream: KcpStream) -> NetResult<KcpConn> {
         Ok(KcpConn {
             kcp: Kcp::Stream(stream),
+            id: IdCenter::next_connect_id(),
             ..Default::default()
         })
     }
@@ -115,6 +116,7 @@ impl KcpConn {
                 let stream = v?;
                 Ok(KcpConn {
                     kcp: Kcp::Stream(stream),
+                    id: IdCenter::next_connect_id(),
                     settings,
                     ..Default::default()
                 })

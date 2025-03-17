@@ -87,7 +87,7 @@ impl TcpConn {
         listener: TcpListener,
         settings: Settings,
     ) -> NetResult<TcpConn> {
-        let id = IdCenter::next_server_id();
+        let id = IdCenter::next_connect_id();
         let wrap = WrapListener::new(listener, id, settings.domain.clone(), &settings).await?;
         Ok(TcpConn {
             tcp: Tcp::Listener(wrap),
@@ -105,6 +105,7 @@ impl TcpConn {
     pub async fn connect_with_stream(stream: TcpStream, settings: Settings) -> NetResult<TcpConn> {
         Ok(TcpConn {
             tcp: Tcp::Stream(MaybeTlsStream::from(stream)),
+            id: IdCenter::next_connect_id(),
             settings,
             ..Default::default()
         })
@@ -132,12 +133,14 @@ impl TcpConn {
                             .await?;
                     Ok(TcpConn {
                         tcp: Tcp::Stream(stream),
+                        id: IdCenter::next_connect_id(),
                         settings,
                         ..Default::default()
                     })
                 } else {
                     Ok(TcpConn {
                         tcp: Tcp::Stream(MaybeTlsStream::from(stream)),
+                        id: IdCenter::next_connect_id(),
                         settings,
                         ..Default::default()
                     })

@@ -36,7 +36,7 @@ impl WrapListener {
                 listener,
                 server_id: server_id<<32,
                 next_connection_id: 0,
-                domain: domain,
+                domain,
                 accepter: Some(Arc::new(accepter)),
             })
         } else {

@@ -7,7 +7,7 @@ use crate::{
 
 pub struct TcpAcceptServer {
     stream: Option<MaybeAcceptStream>,
-    addr: SocketAddr,
+    pub addr: SocketAddr,
 }
 
 impl TcpAcceptServer {
