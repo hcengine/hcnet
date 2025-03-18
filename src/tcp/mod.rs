@@ -302,6 +302,7 @@ impl TcpConn {
     {
         self.tcp.try_accept().await?;
         handler.on_open().await?;
+        let is_listen = self.is_listen();
         loop {
             tokio::select! {
                 ret = self.process() => {
@@ -330,6 +331,9 @@ impl TcpConn {
                     }
                 }
                 c = receiver.recv(), if self.write.len() < self.settings.out_buffer_max => {
+                    if is_listen {
+                        return Ok(())
+                    }
                     let c = unwrap_or!(c, return Ok(()));
                     match c.msg {
                         Message::Close(code, reason) => {
@@ -360,7 +364,9 @@ impl TcpConn {
         let _avoid = sender.clone();
         let mut handler = factory(sender);
         if let Err(e) = self.inner_run_with_handler(&mut handler, receiver).await {
-            handler.on_close(CloseCode::Error, "NetError".to_string()).await;
+            handler
+                .on_close(CloseCode::Error, "NetError".to_string())
+                .await;
             return Err(e);
         }
         Ok(())
@@ -376,5 +382,12 @@ impl TcpConn {
 
     pub fn get_connection_id(&self) -> u64 {
         self.id
+    }
+
+    pub fn is_listen(&self) -> bool {
+        match &self.tcp {
+            Tcp::Listener(_) => true,
+            _ => false,
+        }
     }
 }

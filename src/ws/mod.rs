@@ -208,7 +208,15 @@ impl WsConn {
         match &self.ws {
             Ws::Client(ws_client) => ws_client.is_outbuffer_full(&self.settings),
             Ws::Server(ws_server) => ws_server.is_outbuffer_full(&self.settings),
-            _ => true,
+            Ws::AcceptServer(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_listen(&self) -> bool {
+        match &self.ws {
+            Ws::Listener(_) => true,
+            _ => false,
         }
     }
 
@@ -221,6 +229,7 @@ impl WsConn {
         H: Handler + 'static + Sync + Send,
     {
         self.ws.try_accept().await?;
+        let is_listen = self.is_listen();
         let mut call_ready = false;
         loop {
             if !call_ready && self.is_ready() {
@@ -279,6 +288,9 @@ impl WsConn {
                     }
                 }
                 c = receiver.recv(), if !self.is_outbuffer_full() => {
+                    if is_listen {
+                        return Ok(());
+                    }
                     let c = unwrap_or!(c, return Ok(()));
                     match c.msg {
                         Message::Close(code, reason) => {

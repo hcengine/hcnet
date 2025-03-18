@@ -246,6 +246,7 @@ impl KcpConn {
         H: Handler + 'static + Sync + Send,
     {
         handler.on_open().await?;
+        let is_listen = self.is_listen();
         loop {
             tokio::select! {
                 ret = self.process() => {
@@ -274,6 +275,9 @@ impl KcpConn {
                     }
                 }
                 c = receiver.recv(), if self.write.len() < self.settings.out_buffer_max => {
+                    if is_listen {
+                        return Ok(())
+                    }
                     let c = unwrap_or!(c, return Ok(()));
                     match c.msg {
                         Message::Close(code, reason) => {
@@ -322,5 +326,12 @@ impl KcpConn {
 
     pub fn get_connection_id(&self) -> u64 {
         self.id
+    }
+
+    pub fn is_listen(&self) -> bool {
+        match &self.kcp {
+            Kcp::Listener(_) => true,
+            _ => false,
+        }
     }
 }
